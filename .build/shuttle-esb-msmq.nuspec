@@ -1,0 +1,21 @@
+﻿<?xml version="1.0"?>
+<package >
+	<metadata>
+		<id>shuttle-esb-msmq</id>
+		<version>{semver}</version>
+		<authors>Eben Roux</authors>
+		<owners>Eben Roux</owners>
+		<licenseUrl>https://github.com/shuttle/shuttle-esb-msmq/raw/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/shuttle/shuttle-esb-msmq</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/Shuttle/shuttle-esb-msmq/master/.media/logo.png</iconUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>MSMQ implementation for use with shuttle-esb.</description>
+		<releaseNotes/>
+		<copyright>Copyright (c) 2011-{year}, Eben Roux</copyright>
+		<tags>shuttle-esb msmq</tags>
+		<dependencies>
+			<dependency id="shuttle-esb-core" version="[{shuttle-esb-core-version}]" />
+			<dependency id="shuttle-core-infrastructure" version="[{shuttle-core-infrastructure-version}]" />
+		</dependencies>
+	</metadata>
+</package>
