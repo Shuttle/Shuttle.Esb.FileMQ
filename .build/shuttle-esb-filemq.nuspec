@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0"?>
 <package >
 	<metadata>
-		<id>shuttle-esb-msmq</id>
+		<id>shuttle-esb-filemq</id>
 		<version>{semver}</version>
 		<authors>Eben Roux</authors>
 		<owners>Eben Roux</owners>
-		<licenseUrl>https://github.com/shuttle/shuttle-esb-msmq/raw/master/LICENSE</licenseUrl>
-		<projectUrl>https://github.com/shuttle/shuttle-esb-msmq</projectUrl>
-		<iconUrl>https://raw.githubusercontent.com/Shuttle/shuttle-esb-msmq/master/.media/logo.png</iconUrl>
+		<licenseUrl>https://github.com/shuttle/shuttle-esb-filemq/raw/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/shuttle/shuttle-esb-filemq</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/Shuttle/shuttle-esb-filemq/master/.media/logo.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<description>MSMQ implementation for use with shuttle-esb.</description>
 		<releaseNotes/>

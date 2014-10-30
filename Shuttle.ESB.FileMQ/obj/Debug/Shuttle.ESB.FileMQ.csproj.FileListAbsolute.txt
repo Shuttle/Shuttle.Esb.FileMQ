@@ -16,3 +16,12 @@ C:\development.github\shuttle\shuttle-esb\source\Shuttle.ESB.FileMQ\bin\Debug\Sh
 C:\development.github\shuttle\shuttle-esb\source\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.Core.Infrastructure.dll
 C:\development.github\shuttle\shuttle-esb\source\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.ESB.Core.dll
 C:\development.github\shuttle\shuttle-esb\source\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.ESB.Core.pdb
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Debug\Shuttle.ESB.FileMQ.csprojResolveAssemblyReference.cache
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Debug\Shuttle.ESB.FileMQ.FileMQResources.resources
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Debug\Shuttle.ESB.FileMQ.csproj.GenerateResource.Cache
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Debug\Shuttle.ESB.FileMQ.dll
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Debug\Shuttle.ESB.FileMQ.pdb
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.ESB.FileMQ.dll
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.ESB.FileMQ.pdb
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.Core.Infrastructure.dll
+C:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\bin\Debug\Shuttle.ESB.Core.dll
