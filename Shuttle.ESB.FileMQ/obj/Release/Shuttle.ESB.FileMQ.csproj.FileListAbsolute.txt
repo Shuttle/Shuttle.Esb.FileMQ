@@ -17,3 +17,15 @@ C:\development.github\shuttle\shuttle-esb\build\debug\net45-full\Shuttle.ESB.Fil
 C:\development.github\shuttle\shuttle-esb\build\debug\net45-full\Shuttle.ESB.FileMQ.pdb
 C:\development.github\shuttle\shuttle-esb\build\debug\net451-full\Shuttle.ESB.FileMQ.dll
 C:\development.github\shuttle\shuttle-esb\build\debug\net451-full\Shuttle.ESB.FileMQ.pdb
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net35-full\Shuttle.ESB.FileMQ.dll
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net35-full\Shuttle.ESB.FileMQ.pdb
+D:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Release\Shuttle.ESB.FileMQ.FileMQResources.resources
+D:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Release\Shuttle.ESB.FileMQ.csproj.GenerateResource.Cache
+D:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Release\Shuttle.ESB.FileMQ.dll
+D:\development.github\shuttle\shuttle-esb-filemq\Shuttle.ESB.FileMQ\obj\Release\Shuttle.ESB.FileMQ.pdb
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net40-full\Shuttle.ESB.FileMQ.dll
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net40-full\Shuttle.ESB.FileMQ.pdb
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net45-full\Shuttle.ESB.FileMQ.dll
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net45-full\Shuttle.ESB.FileMQ.pdb
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net451-full\Shuttle.ESB.FileMQ.dll
+D:\development.github\shuttle\shuttle-esb-filemq\.build\deployment\release\net451-full\Shuttle.ESB.FileMQ.pdb
