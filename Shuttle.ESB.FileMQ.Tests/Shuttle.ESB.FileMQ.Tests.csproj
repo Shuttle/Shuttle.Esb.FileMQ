@@ -54,6 +54,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\shuttle-esb-core.3.4.1\lib\net35-full\Shuttle.ESB.Core.dll</HintPath>
     </Reference>
+    <Reference Include="Shuttle.ESB.Tests, Version=3.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\shuttle-esb-tests.3.4.1\lib\net35-full\Shuttle.ESB.Tests.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
