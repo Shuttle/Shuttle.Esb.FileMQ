@@ -1,10 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-#if NET35FULL
-[assembly: AssemblyTitle("Shuttle.ESB.FileMQ for .NET Framework 3.5")]
-#endif
-
 #if NET40FULL
 [assembly: AssemblyTitle("Shuttle.ESB.FileMQ for .NET Framework 4.0")]
 #endif

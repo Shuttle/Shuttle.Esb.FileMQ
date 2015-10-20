@@ -33,11 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <Framework Condition=" '$(Framework)' == '' ">net35-full</Framework>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Framework)' == 'net35-full'">
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <DefineConstants>$(DefineConstants);NET35FULL</DefineConstants>
+    <Framework Condition=" '$(Framework)' == '' ">net40-full</Framework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Framework)' == 'net40-full'">
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
@@ -53,11 +49,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Shuttle.Core.Infrastructure">
-      <HintPath>..\packages\shuttle-core-infrastructure.3.1.5\lib\net35-full\Shuttle.Core.Infrastructure.dll</HintPath>
+      <HintPath>..\packages\shuttle-core-infrastructure.3.1.5\lib\net40-full\Shuttle.Core.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="Shuttle.ESB.Core, Version=3.4.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\shuttle-esb-core.3.4.1\lib\net35-full\Shuttle.ESB.Core.dll</HintPath>
+      <HintPath>..\packages\shuttle-esb-core.3.4.1\lib\net40-full\Shuttle.ESB.Core.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
