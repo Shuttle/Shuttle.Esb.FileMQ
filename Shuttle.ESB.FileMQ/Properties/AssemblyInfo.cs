@@ -13,11 +13,11 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Shuttle.ESB.ModFileMQules for .NET Framework 4.5.1")]
 #endif
 
-[assembly: AssemblyVersion("3.5.0.0")]
+[assembly: AssemblyVersion("3.5.1.0")]
 [assembly: AssemblyCopyright("Copyright © Eben Roux 2010-2014")]
 [assembly: AssemblyProduct("Shuttle.ESB")]
 [assembly: AssemblyCompany("Shuttle")]
 [assembly: AssemblyConfiguration("Release")]
-[assembly: AssemblyInformationalVersion("3.5.0")]
+[assembly: AssemblyInformationalVersion("3.5.1")]
 [assembly: ComVisible(false)]
 
