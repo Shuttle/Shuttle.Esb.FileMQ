@@ -1,21 +1,21 @@
 <?xml version="1.0"?>
 <package >
 	<metadata>
-		<id>shuttle-esb-filemq</id>
+		<id>Shuttle.Esb.FileMQ</id>
 		<version>{semver}</version>
 		<authors>Eben Roux</authors>
 		<owners>Eben Roux</owners>
-		<licenseUrl>https://github.com/shuttle/shuttle-esb-filemq/raw/master/LICENSE</licenseUrl>
-		<projectUrl>https://github.com/shuttle/shuttle-esb-filemq</projectUrl>
-		<iconUrl>https://raw.githubusercontent.com/Shuttle/shuttle-esb-filemq/master/.media/logo.png</iconUrl>
+		<licenseUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ/raw/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.FileMQ/master/.media/logo.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<description>MSMQ implementation for use with shuttle-esb.</description>
+		<description>MSMQ implementation for use with Shuttle.Esb.</description>
 		<releaseNotes/>
 		<copyright>Copyright (c) {year}, Eben Roux</copyright>
-		<tags>shuttle-esb msmq</tags>
+		<tags>shuttle-esb shuttle-esb-msmq msmq</tags>
 		<dependencies>
-			<dependency id="shuttle-esb-core" version="{shuttle-esb-core-version}" />
-			<dependency id="shuttle-core-infrastructure" version="{shuttle-core-infrastructure-version}" />
+			<dependency id="Shuttle.Esb" version="{Shuttle.Esb-version}" />
+			<dependency id="Shuttle.Core.Infrastructure" version="{Shuttle.Core.Infrastructure-version}" />
 		</dependencies>
 	</metadata>
 </package>

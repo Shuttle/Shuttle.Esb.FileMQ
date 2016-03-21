@@ -1,8 +1,8 @@
 ﻿using System;
 using Shuttle.Core.Infrastructure;
-using Shuttle.ESB.Core;
+using Shuttle.Esb;
 
-namespace Shuttle.ESB.FileMQ
+namespace Shuttle.Esb.FileMQ
 {
 	public class FileQueueFactory : IQueueFactory
 	{

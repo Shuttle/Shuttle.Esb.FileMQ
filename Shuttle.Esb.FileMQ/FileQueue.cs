@@ -2,9 +2,9 @@
 using System.IO;
 using System.Linq;
 using Shuttle.Core.Infrastructure;
-using Shuttle.ESB.Core;
+using Shuttle.Esb;
 
-namespace Shuttle.ESB.FileMQ
+namespace Shuttle.Esb.FileMQ
 {
 	public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 	{

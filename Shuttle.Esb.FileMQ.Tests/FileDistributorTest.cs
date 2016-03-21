@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
-using Shuttle.ESB.Tests;
+using Shuttle.Esb.Tests;
 
-namespace Shuttle.ESB.FileMQ.Tests
+namespace Shuttle.Esb.FileMQ.Tests
 {
 	public class FileDistributorTest : DistributorFixture
 	{

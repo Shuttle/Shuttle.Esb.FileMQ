@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Shuttle.ESB.FileMQ.Tests
+namespace Shuttle.Esb.FileMQ.Tests
 {
 	public static class FileMQExtensions
 	{
