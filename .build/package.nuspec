@@ -9,7 +9,7 @@
 		<projectUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ</projectUrl>
 		<iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.FileMQ/master/.media/logo.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<description>MSMQ implementation for use with Shuttle.Esb.</description>
+		<description>File-based queue implementation for use with Shuttle.Esb.</description>
 		<releaseNotes/>
 		<copyright>Copyright (c) {year}, Eben Roux</copyright>
 		<tags>shuttle-esb shuttle-esb-msmq msmq</tags>
