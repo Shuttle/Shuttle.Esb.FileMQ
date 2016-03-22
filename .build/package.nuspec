@@ -12,7 +12,7 @@
 		<description>File-based queue implementation for use with Shuttle.Esb.</description>
 		<releaseNotes/>
 		<copyright>Copyright (c) {year}, Eben Roux</copyright>
-		<tags>shuttle-esb shuttle-esb-msmq msmq</tags>
+		<tags>shuttle-esb Shuttle.Esb.Msmq msmq</tags>
 		<dependencies>
 			<dependency id="Shuttle.Esb" version="{Shuttle.Esb-version}" />
 			<dependency id="Shuttle.Core.Infrastructure" version="{Shuttle.Core.Infrastructure-version}" />
