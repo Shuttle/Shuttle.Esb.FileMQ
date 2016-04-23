@@ -1,6 +1,5 @@
 ﻿using System;
 using Shuttle.Core.Infrastructure;
-using Shuttle.Esb;
 
 namespace Shuttle.Esb.FileMQ
 {
@@ -25,7 +24,7 @@ namespace Shuttle.Esb.FileMQ
 			var result = Scheme.Equals(uri.Scheme, StringComparison.InvariantCultureIgnoreCase);
 
 			Guard.Against<NotSupportedException>(result && !string.IsNullOrEmpty(uri.Host) && !uri.Host.Equals("."),
-			                                     string.Format(FileMQResources.HostNotPermittedException, uri.Host));
+				string.Format(FileMQResources.HostNotPermittedException, uri.Host));
 
 			return result;
 		}

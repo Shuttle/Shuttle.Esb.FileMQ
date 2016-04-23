@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using Shuttle.Core.Infrastructure;
-using Shuttle.Esb;
 
 namespace Shuttle.Esb.FileMQ
 {
@@ -63,11 +62,11 @@ namespace Shuttle.Esb.FileMQ
 			return !Directory.GetFiles(_queueFolder, ExtensionMask).Any();
 		}
 
-		public void Enqueue(Guid messageId, Stream stream)
+		public void Enqueue(TransportMessage transportMessage, Stream stream)
 		{
-			var buffer = new byte[8 * 1024];
-			var streaming = Path.Combine(_queueFolder, string.Concat(messageId, ".stream"));
-			var message = Path.Combine(_queueFolder, string.Concat(messageId, Extension));
+			var buffer = new byte[8*1024];
+			var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
+			var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
 
 			File.Delete(message);
 
@@ -94,7 +93,8 @@ namespace Shuttle.Esb.FileMQ
 
 			lock (_padlock)
 			{
-				var message = Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime).FirstOrDefault();
+				var message =
+					Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime).FirstOrDefault();
 
 				if (string.IsNullOrEmpty(message))
 				{
@@ -125,7 +125,7 @@ namespace Shuttle.Esb.FileMQ
 
 		public void Release(object acknowledgementToken)
 		{
-			var fileName = (string)acknowledgementToken;
+			var fileName = (string) acknowledgementToken;
 			var queueMessage = Path.Combine(_queueFolder, fileName);
 			var journalMessage = Path.Combine(_journalFolder, fileName);
 
