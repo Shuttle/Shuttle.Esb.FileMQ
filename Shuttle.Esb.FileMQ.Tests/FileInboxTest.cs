@@ -34,11 +34,5 @@ namespace Shuttle.Esb.FileMQ.Tests
 		{
 			TestInboxDeferred(FileMQExtensions.FileUri());
 		}
-
-		[Test]
-		public void Should_be_able_to_expire_a_message()
-		{
-			TestInboxExpiry(FileMQExtensions.FileUri(), false);
-		}
 	}
 }
