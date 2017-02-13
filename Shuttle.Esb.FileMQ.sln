@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shuttle.Esb.FileMQ", "Shuttle.Esb.FileMQ\Shuttle.Esb.FileMQ.csproj", "{3F7D27BB-CB34-46AF-953F-0F454236DD40}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shuttle.Esb.FileMQ.Tests", "Shuttle.Esb.FileMQ.Tests\Shuttle.Esb.FileMQ.Tests.csproj", "{ECB6B0BD-B909-4B6B-96D1-B7B20C61AB55}"
@@ -43,4 +45,3 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
-

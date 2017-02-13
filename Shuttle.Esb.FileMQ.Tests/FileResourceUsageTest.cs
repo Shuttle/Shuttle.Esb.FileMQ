@@ -10,7 +10,7 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[TestCase(true)]
 		public void Should_not_exceeed_normal_resource_usage(bool isTransactionalEndpoint)
 		{
-			TestResourceUsage(FileMQExtensions.FileUri(), isTransactionalEndpoint);
+			TestResourceUsage(FileMQFixture.GetComponentContainer(), FileMQExtensions.FileUri(), isTransactionalEndpoint);
 		}
 	}
 }
