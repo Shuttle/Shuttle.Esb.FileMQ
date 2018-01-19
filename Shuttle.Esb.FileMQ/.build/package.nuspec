@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<package>
+  <metadata>
+    <id>Shuttle.Esb.FileMQ</id>
+    <version>{semver}</version>
+    <authors>Eben Roux</authors>
+    <owners>Eben Roux</owners>
+    <licenseUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ/raw/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.FileMQ/master/.media/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>File-based queue implementation for use with Shuttle.Esb.</description>
+    <releaseNotes />
+    <copyright>Copyright (c) {year}, Eben Roux</copyright>
+    <tags>shuttle</tags>
+    <dependencies>
+      <dependency id="Shuttle.Esb" version="{Shuttle.Esb-version}" />
+    </dependencies>
+  </metadata>
+</package>

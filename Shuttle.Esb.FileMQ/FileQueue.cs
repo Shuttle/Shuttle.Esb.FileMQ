@@ -1,170 +1,173 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Shuttle.Core.Infrastructure;
+using Shuttle.Core.Contract;
+using Shuttle.Core.Streams;
 
 namespace Shuttle.Esb.FileMQ
 {
-	public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
-	{
-		private readonly object _padlock = new object();
-		private bool _journalInitialized;
+    public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
+    {
+        private const string Extension = ".file";
+        private const string ExtensionMask = "*.file";
+        private readonly string _journalFolder;
+        private readonly object _padlock = new object();
 
-		private readonly string _queueFolder;
-		private readonly string _journalFolder;
-		private const string Extension = ".file";
-		private const string ExtensionMask = "*.file";
+        private readonly string _queueFolder;
+        private bool _journalInitialized;
 
-		public FileQueue(Uri uri)
-		{
-			Guard.AgainstNull(uri, "uri");
+        public FileQueue(Uri uri)
+        {
+            Guard.AgainstNull(uri, "uri");
 
-			Uri = uri;
+            Uri = uri;
 
-			_queueFolder = uri.LocalPath;
+            _queueFolder = uri.LocalPath;
 
-			if (!string.IsNullOrEmpty(uri.Host) && uri.Host.Equals("."))
-			{
-				_queueFolder = Path.GetFullPath(string.Concat(".", uri.LocalPath));
-			}
+            if (!string.IsNullOrEmpty(uri.Host) && uri.Host.Equals("."))
+            {
+                _queueFolder = Path.GetFullPath(string.Concat(".", uri.LocalPath));
+            }
 
-			_journalFolder = Path.Combine(_queueFolder, "journal");
+            _journalFolder = Path.Combine(_queueFolder, "journal");
 
-			Directory.CreateDirectory(_queueFolder);
-			Directory.CreateDirectory(_journalFolder);
-		}
+            Directory.CreateDirectory(_queueFolder);
+            Directory.CreateDirectory(_journalFolder);
+        }
 
-		public Uri Uri { get; private set; }
+        public void Create()
+        {
+            Directory.CreateDirectory(_queueFolder);
+            Directory.CreateDirectory(_journalFolder);
+        }
 
-		private void ReturnJournalMessages()
-		{
-			lock (_padlock)
-			{
-				if (_journalInitialized)
-				{
-					return;
-				}
+        public void Drop()
+        {
+            if (Directory.Exists(_journalFolder))
+            {
+                Directory.Delete(_journalFolder, true);
+            }
 
-				foreach (var journalFile in Directory.GetFiles(_journalFolder, ExtensionMask))
-				{
-					var queueFile = Path.Combine(_queueFolder, Path.GetFileName(journalFile));
+            if (Directory.Exists(_queueFolder))
+            {
+                Directory.Delete(_queueFolder, true);
+            }
+        }
 
-					File.Delete(queueFile);
-					File.Move(journalFile, queueFile);
-				}
+        public void Purge()
+        {
+            Drop();
+            Create();
+        }
 
-				_journalInitialized = true;
-			}
-		}
+        public Uri Uri { get; }
 
-		public bool IsEmpty()
-		{
-			return !Directory.GetFiles(_queueFolder, ExtensionMask).Any();
-		}
+        public bool IsEmpty()
+        {
+            return !Directory.GetFiles(_queueFolder, ExtensionMask).Any();
+        }
 
-		public void Enqueue(TransportMessage transportMessage, Stream stream)
-		{
-			var buffer = new byte[8*1024];
-			var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
-			var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
+        public void Enqueue(TransportMessage transportMessage, Stream stream)
+        {
+            var buffer = new byte[8 * 1024];
+            var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
+            var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
 
-			File.Delete(message);
+            File.Delete(message);
 
-			using (var source = stream.Copy())
-			using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
-			{
-				int length;
-				while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
-				{
-					fs.Write(buffer, 0, length);
-				}
-				fs.Flush();
-			}
+            using (var source = stream.Copy())
+            using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
+            {
+                int length;
+                while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    fs.Write(buffer, 0, length);
+                }
 
-			File.Move(streaming, message);
-		}
+                fs.Flush();
+            }
 
-		public ReceivedMessage GetMessage()
-		{
-			if (!_journalInitialized)
-			{
-				ReturnJournalMessages();
-			}
+            File.Move(streaming, message);
+        }
 
-			lock (_padlock)
-			{
-				var message =
-					Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime).FirstOrDefault();
+        public ReceivedMessage GetMessage()
+        {
+            if (!_journalInitialized)
+            {
+                ReturnJournalMessages();
+            }
 
-				if (string.IsNullOrEmpty(message))
-				{
-					return null;
-				}
+            lock (_padlock)
+            {
+                var message =
+                    Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
+                        .FirstOrDefault();
 
-				ReceivedMessage result;
-				var acknowledgementToken = Path.GetFileName(message);
+                if (string.IsNullOrEmpty(message))
+                {
+                    return null;
+                }
 
-				using (var stream = File.OpenRead(message))
-				{
-					result = new ReceivedMessage(stream.Copy(), acknowledgementToken);
-				}
+                ReceivedMessage result;
+                var acknowledgementToken = Path.GetFileName(message);
 
-				File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
+                using (var stream = File.OpenRead(message))
+                {
+                    result = new ReceivedMessage(stream.Copy(), acknowledgementToken);
+                }
 
-				return result;
-			}
-		}
+                File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
 
-		public void Acknowledge(object acknowledgementToken)
-		{
-			lock (_padlock)
-			{
-				File.Delete(Path.Combine(_journalFolder, (string) acknowledgementToken));
-			}
-		}
+                return result;
+            }
+        }
 
-		public void Release(object acknowledgementToken)
-		{
-			var fileName = (string) acknowledgementToken;
-			var queueMessage = Path.Combine(_queueFolder, fileName);
-			var journalMessage = Path.Combine(_journalFolder, fileName);
+        public void Acknowledge(object acknowledgementToken)
+        {
+            lock (_padlock)
+            {
+                File.Delete(Path.Combine(_journalFolder, (string) acknowledgementToken));
+            }
+        }
 
-			if (!File.Exists(journalMessage))
-			{
-				return;
-			}
+        public void Release(object acknowledgementToken)
+        {
+            var fileName = (string) acknowledgementToken;
+            var queueMessage = Path.Combine(_queueFolder, fileName);
+            var journalMessage = Path.Combine(_journalFolder, fileName);
 
-			lock (_padlock)
-			{
-				File.Delete(queueMessage);
-				File.Move(journalMessage, queueMessage);
-				File.SetCreationTime(queueMessage, DateTime.Now);
-			}
-		}
+            if (!File.Exists(journalMessage))
+            {
+                return;
+            }
 
-		public void Create()
-		{
-			Directory.CreateDirectory(_queueFolder);
-			Directory.CreateDirectory(_journalFolder);
-		}
+            lock (_padlock)
+            {
+                File.Delete(queueMessage);
+                File.Move(journalMessage, queueMessage);
+                File.SetCreationTime(queueMessage, DateTime.Now);
+            }
+        }
 
-		public void Drop()
-		{
-			if (Directory.Exists(_journalFolder))
-			{
-				Directory.Delete(_journalFolder, true);
-			}
+        private void ReturnJournalMessages()
+        {
+            lock (_padlock)
+            {
+                if (_journalInitialized)
+                {
+                    return;
+                }
 
-			if (Directory.Exists(_queueFolder))
-			{
-				Directory.Delete(_queueFolder, true);
-			}
-		}
+                foreach (var journalFile in Directory.GetFiles(_journalFolder, ExtensionMask))
+                {
+                    var queueFile = Path.Combine(_queueFolder, Path.GetFileName(journalFile));
 
-		public void Purge()
-		{
-			Drop();
-			Create();
-		}
-	}
+                    File.Delete(queueFile);
+                    File.Move(journalFile, queueFile);
+                }
+
+                _journalInitialized = true;
+            }
+        }
+    }
 }

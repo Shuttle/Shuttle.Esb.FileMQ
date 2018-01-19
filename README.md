@@ -1,5 +1,5 @@
-Shuttle.Esb.FileMQ
-==================
+# Shuttle.Esb.FileMQ
+
 
 File-based queue implementation for use with Shuttle.Esb.
 
@@ -13,11 +13,11 @@ This `IQueue` implementation makes use of a folder as a queue with the messages 
 
 The queue configuration is part of the specified uri, e.g.:
 
-~~~xml
+``` xml
     <inbox
       workQueueUri="filemq://{directory-path}"
 	  .
 	  .
 	  .
     />
-~~~
+```
