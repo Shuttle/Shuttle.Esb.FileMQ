@@ -10,8 +10,8 @@ namespace Shuttle.Esb.FileMQ
     {
         private const string Extension = ".file";
         private const string ExtensionMask = "*.file";
+        private static readonly object Lock = new object();
         private readonly string _journalFolder;
-        private readonly object _padlock = new object();
 
         private readonly string _queueFolder;
         private bool _journalInitialized;
@@ -31,26 +31,31 @@ namespace Shuttle.Esb.FileMQ
 
             _journalFolder = Path.Combine(_queueFolder, "journal");
 
-            Directory.CreateDirectory(_queueFolder);
-            Directory.CreateDirectory(_journalFolder);
+            Create();
         }
 
         public void Create()
         {
-            Directory.CreateDirectory(_queueFolder);
-            Directory.CreateDirectory(_journalFolder);
+            lock (Lock)
+            {
+                Directory.CreateDirectory(_queueFolder);
+                Directory.CreateDirectory(_journalFolder);
+            }
         }
 
         public void Drop()
         {
-            if (Directory.Exists(_journalFolder))
+            lock (Lock)
             {
-                Directory.Delete(_journalFolder, true);
-            }
+                if (Directory.Exists(_journalFolder))
+                {
+                    Directory.Delete(_journalFolder, true);
+                }
 
-            if (Directory.Exists(_queueFolder))
-            {
-                Directory.Delete(_queueFolder, true);
+                if (Directory.Exists(_queueFolder))
+                {
+                    Directory.Delete(_queueFolder, true);
+                }
             }
         }
 
@@ -69,25 +74,33 @@ namespace Shuttle.Esb.FileMQ
 
         public void Enqueue(TransportMessage transportMessage, Stream stream)
         {
-            var buffer = new byte[8 * 1024];
-            var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
-            var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
+            Create();
 
-            File.Delete(message);
-
-            using (var source = stream.Copy())
-            using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
+            lock (Lock)
             {
-                int length;
-                while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
+                var buffer = new byte[8 * 1024];
+                var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
+                var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
+
+                if (File.Exists(message))
                 {
-                    fs.Write(buffer, 0, length);
+                    File.Delete(message);
                 }
 
-                fs.Flush();
-            }
+                using (var source = stream.Copy())
+                using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
+                {
+                    int length;
+                    while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        fs.Write(buffer, 0, length);
+                    }
 
-            File.Move(streaming, message);
+                    fs.Flush();
+                }
+
+                File.Move(streaming, message);
+            }
         }
 
         public ReceivedMessage GetMessage()
@@ -97,34 +110,41 @@ namespace Shuttle.Esb.FileMQ
                 ReturnJournalMessages();
             }
 
-            lock (_padlock)
+            lock (Lock)
             {
-                var message =
-                    Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
-                        .FirstOrDefault();
+                try
+                {
+                    var message =
+                        Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
+                            .FirstOrDefault();
 
-                if (string.IsNullOrEmpty(message))
+                    if (string.IsNullOrEmpty(message))
+                    {
+                        return null;
+                    }
+
+                    ReceivedMessage result;
+                    var acknowledgementToken = Path.GetFileName(message);
+
+                    using (var stream = File.OpenRead(message))
+                    {
+                        result = new ReceivedMessage(stream.Copy(), acknowledgementToken);
+                    }
+
+                    File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
+
+                    return result;
+                }
+                catch
                 {
                     return null;
                 }
-
-                ReceivedMessage result;
-                var acknowledgementToken = Path.GetFileName(message);
-
-                using (var stream = File.OpenRead(message))
-                {
-                    result = new ReceivedMessage(stream.Copy(), acknowledgementToken);
-                }
-
-                File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
-
-                return result;
             }
         }
 
         public void Acknowledge(object acknowledgementToken)
         {
-            lock (_padlock)
+            lock (Lock)
             {
                 File.Delete(Path.Combine(_journalFolder, (string) acknowledgementToken));
             }
@@ -136,13 +156,18 @@ namespace Shuttle.Esb.FileMQ
             var queueMessage = Path.Combine(_queueFolder, fileName);
             var journalMessage = Path.Combine(_journalFolder, fileName);
 
-            if (!File.Exists(journalMessage))
+            lock (Lock)
             {
-                return;
-            }
+                if (!File.Exists(journalMessage))
+                {
+                    return;
+                }
 
-            lock (_padlock)
-            {
+                if (!Directory.Exists(_queueFolder))
+                {
+                    return;
+                }
+
                 File.Delete(queueMessage);
                 File.Move(journalMessage, queueMessage);
                 File.SetCreationTime(queueMessage, DateTime.Now);
@@ -151,9 +176,13 @@ namespace Shuttle.Esb.FileMQ
 
         private void ReturnJournalMessages()
         {
-            lock (_padlock)
+            lock (Lock)
             {
-                if (_journalInitialized)
+                if (_journalInitialized
+                    ||
+                    !Directory.Exists(_queueFolder)
+                    ||
+                    !Directory.Exists(_journalFolder))
                 {
                     return;
                 }
@@ -162,8 +191,15 @@ namespace Shuttle.Esb.FileMQ
                 {
                     var queueFile = Path.Combine(_queueFolder, Path.GetFileName(journalFile));
 
-                    File.Delete(queueFile);
-                    File.Move(journalFile, queueFile);
+                    if (File.Exists(queueFile))
+                    {
+                        File.Delete(queueFile);
+                    }
+
+                    if (File.Exists(journalFile))
+                    {
+                        File.Move(journalFile, queueFile);
+                    }
                 }
 
                 _journalInitialized = true;

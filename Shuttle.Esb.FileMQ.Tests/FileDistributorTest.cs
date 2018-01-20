@@ -10,7 +10,7 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[TestCase(true)]
 		public void Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
 		{
-			TestDistributor(FileMQFixture.GetComponentContainer(), FileMQFixture.GetComponentContainer(), FileMQExtensions.FileUri(), isTransactionalEndpoint);
+			TestDistributor(FileMQFixture.GetComponentContainer(), FileMQFixture.GetComponentContainer(), FileMQExtensions.FileUri(), isTransactionalEndpoint, 300);
 		}
 	}
 }
