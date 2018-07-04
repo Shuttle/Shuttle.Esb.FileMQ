@@ -9,6 +9,7 @@
     <licenseUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ/raw/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.FileMQ/master/.media/logo.png</iconUrl>
+    <repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.FileMQ.git" />
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>File-based queue implementation for use with Shuttle.Esb.</description>
     <releaseNotes />
