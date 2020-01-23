@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-
 <package>
   <metadata>
     <id>Shuttle.Esb.FileMQ</id>
@@ -8,7 +7,7 @@
     <owners>Eben Roux</owners>
     <license type="expression">BSD-3-Clause</license>
     <projectUrl>https://github.com/shuttle/Shuttle.Esb.FileMQ</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.FileMQ/master/.media/logo.png</iconUrl>
+    <icon>images\logo.png</icon>
     <repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.FileMQ.git" />
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>File-based queue implementation for use with Shuttle.Esb.</description>
@@ -19,4 +18,8 @@
       <dependency id="Shuttle.Esb" version="{Shuttle.Esb-version}" />
     </dependencies>
   </metadata>
+  <files>
+    <file src="..\..\..\..\.media\logo.png" target="images\" />
+	<file src="lib\**\*.*" target="lib" />
+  </files>
 </package>
