@@ -1,42 +1,22 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-#if NET46
-[assembly: AssemblyTitle(".NET Framework 4.6")]
+#if NETFRAMEWORK
+[assembly: AssemblyTitle(".NET Framework")]
 #endif
 
-#if NET461
-[assembly: AssemblyTitle(".NET Framework 4.6.1")]
+#if NETCOREAPP
+[assembly: AssemblyTitle(".NET Core")]
 #endif
 
-#if NET462
-[assembly: AssemblyTitle(".NET Framework 4.6.2")]
+#if NETSTANDARD
+[assembly: AssemblyTitle(".NET Standard")]
 #endif
 
-#if NET47
-[assembly: AssemblyTitle(".NET Framework 4.7")]
-#endif
-
-#if NET471
-[assembly: AssemblyTitle(".NET Framework 4.7.1")]
-#endif
-
-#if NETCOREAPP2_0
-[assembly: AssemblyTitle(".NET Core 2.0")]
-#endif
-
-#if NETCOREAPP2_1
-[assembly: AssemblyTitle(".NET Core 2.1")]
-#endif
-
-#if NETSTANDARD2_0
-[assembly: AssemblyTitle(".NET Standard 2.0")]
-#endif
-
-[assembly: AssemblyVersion("11.0.0.0")]
-[assembly: AssemblyCopyright("Copyright © Eben Roux 2019")]
+[assembly: AssemblyVersion("11.0.1.0")]
+[assembly: AssemblyCopyright("Copyright (c) 2021, Eben Roux")]
 [assembly: AssemblyProduct("Shuttle.Esb.FileMQ")]
-[assembly: AssemblyCompany("Shuttle")]
+[assembly: AssemblyCompany("Eben Roux")]
 [assembly: AssemblyConfiguration("Release")]
-[assembly: AssemblyInformationalVersion("11.0.0")]
+[assembly: AssemblyInformationalVersion("11.0.1")]
 [assembly: ComVisible(false)]
