@@ -1,4 +1,4 @@
-# Shuttle.Esb.FileMQ
+# File System
 
 
 File-based queue implementation for use with Shuttle.Esb.
