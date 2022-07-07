@@ -66,6 +66,7 @@ namespace Shuttle.Esb.FileMQ
         }
 
         public Uri Uri { get; }
+        public bool IsStream => false;
 
         public bool IsEmpty()
         {

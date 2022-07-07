@@ -1,16 +1,18 @@
-using Castle.Windsor;
-using Shuttle.Core.Castle;
-using Shuttle.Esb.Tests;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Shuttle.Esb.FileMQ.Tests
 {
     public static class FileMQFixture
     {
-        public static ComponentContainer GetComponentContainer()
+        public static IServiceCollection GetServiceCollection()
         {
-            var container = new WindsorComponentContainer(new WindsorContainer());
+            var services = new ServiceCollection();
 
-            return new ComponentContainer(container, () => container);
+            services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+            services.AddFileMQ();
+
+            return services;
         }
     }
 }
