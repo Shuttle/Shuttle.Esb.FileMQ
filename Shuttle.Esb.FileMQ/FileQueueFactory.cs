@@ -13,17 +13,5 @@ namespace Shuttle.Esb.FileMQ
 
             return new FileQueue(uri);
         }
-
-        public bool CanCreate(Uri uri)
-        {
-            Guard.AgainstNull(uri, "uri");
-
-            var result = Scheme.Equals(uri.Scheme, StringComparison.InvariantCultureIgnoreCase);
-
-            Guard.Against<NotSupportedException>(result && !string.IsNullOrEmpty(uri.Host) && !uri.Host.Equals("."),
-                string.Format(Resources.HostNotPermittedException, uri.Host));
-
-            return result;
-        }
     }
 }
