@@ -5,12 +5,13 @@ namespace Shuttle.Esb.FileMQ.Tests
 {
 	public class FileInboxTest : InboxFixture
 	{
-		[Test]
-		[TestCase(false)]
-		[TestCase(true)]
-		public void Should_be_able_handle_errors(bool isTransactionalEndpoint)
+		[TestCase(true, true)]
+		[TestCase(true, false)]
+		[TestCase(false, true)]
+		[TestCase(false, false)]
+		public void Should_be_able_handle_errors(bool hasErrorQueue, bool isTransactionalEndpoint)
 		{
-			TestInboxError(FileMQFixture.GetServiceCollection(), FileMQExtensions.FileUri(), isTransactionalEndpoint);
+			TestInboxError(FileMQFixture.GetServiceCollection(), FileMQExtensions.FileUri(), hasErrorQueue, isTransactionalEndpoint);
 		}
 
 		[Test]
