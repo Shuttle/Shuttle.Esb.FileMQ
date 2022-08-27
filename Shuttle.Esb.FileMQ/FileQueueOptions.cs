@@ -2,7 +2,7 @@
 {
     public class FileQueueOptions
     {
-        public const string SectionName = "Shuttle:ServiceBus:FileMQ";
+        public const string SectionName = "Shuttle:FileMQ";
 
         public string Path { get; set; }
     }
