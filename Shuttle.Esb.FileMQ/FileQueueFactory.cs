@@ -1,29 +1,35 @@
 ﻿using System;
+using Microsoft.Extensions.Options;
 using Shuttle.Core.Contract;
 
 namespace Shuttle.Esb.FileMQ
 {
     public class FileQueueFactory : IQueueFactory
     {
+        private readonly IOptionsMonitor<FileQueueOptions> _fileQueueOptions;
+
+        public FileQueueFactory(IOptionsMonitor<FileQueueOptions> fileQueueOptions)
+        {
+            Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
+
+            _fileQueueOptions = fileQueueOptions;
+        }
+
         public string Scheme => "filemq";
 
         public IQueue Create(Uri uri)
         {
-            Guard.AgainstNull(uri, "uri");
+            Guard.AgainstNull(uri, nameof(uri));
 
-            return new FileQueue(uri);
-        }
+            var queueUri = new QueueUri(uri).SchemeInvariant(Scheme);
+            var fileQueueOptions = _fileQueueOptions.Get(queueUri.ConfigurationName);
 
-        public bool CanCreate(Uri uri)
-        {
-            Guard.AgainstNull(uri, "uri");
+            if (fileQueueOptions == null)
+            {
+                throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
+            }
 
-            var result = Scheme.Equals(uri.Scheme, StringComparison.InvariantCultureIgnoreCase);
-
-            Guard.Against<NotSupportedException>(result && !string.IsNullOrEmpty(uri.Host) && !uri.Host.Equals("."),
-                string.Format(Resources.HostNotPermittedException, uri.Host));
-
-            return result;
+            return new FileQueue(queueUri, fileQueueOptions);
         }
     }
 }

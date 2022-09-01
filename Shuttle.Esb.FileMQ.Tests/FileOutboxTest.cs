@@ -10,7 +10,7 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[TestCase(true)]
 		public void Should_be_able_handle_errors(bool isTransactionalEndpoint)
 		{
-			TestOutboxSending(FileMQFixture.GetComponentContainer(), FileMQExtensions.FileUri(), isTransactionalEndpoint);
+			TestOutboxSending(FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", 1, isTransactionalEndpoint);
 		}
 	}
 }

@@ -8,27 +8,24 @@ namespace Shuttle.Esb.FileMQ
 {
     public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
     {
+        private readonly FileQueueOptions _fileQueueOptions;
         private const string Extension = ".file";
         private const string ExtensionMask = "*.file";
         private static readonly object Lock = new object();
         private readonly string _journalFolder;
-
         private readonly string _queueFolder;
         private bool _journalInitialized;
 
-        public FileQueue(Uri uri)
+        public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions)
         {
-            Guard.AgainstNull(uri, "uri");
+            Guard.AgainstNull(uri, nameof(uri));
+            Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
 
             Uri = uri;
 
-            _queueFolder = uri.LocalPath;
+            _fileQueueOptions = fileQueueOptions;
 
-            if (!string.IsNullOrEmpty(uri.Host) && uri.Host.Equals("."))
-            {
-                _queueFolder = Path.GetFullPath(string.Concat(".", uri.LocalPath));
-            }
-
+            _queueFolder = Path.Combine(_fileQueueOptions.Path, uri.QueueName);
             _journalFolder = Path.Combine(_queueFolder, "journal");
 
             Create();
@@ -65,7 +62,8 @@ namespace Shuttle.Esb.FileMQ
             Create();
         }
 
-        public Uri Uri { get; }
+        public QueueUri Uri { get; }
+        public bool IsStream => false;
 
         public bool IsEmpty()
         {
