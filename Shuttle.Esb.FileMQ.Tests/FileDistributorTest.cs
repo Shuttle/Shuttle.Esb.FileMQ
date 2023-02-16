@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Threading.Tasks;
+using NUnit.Framework;
 using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.FileMQ.Tests
@@ -8,9 +9,9 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[Test]
 		[TestCase(false)]
 		[TestCase(true)]
-		public void Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
+		public async Task Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
 		{
-			TestDistributor(FileQueueFixture.GetServiceCollection(), FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint, 300);
+			await TestDistributor(FileQueueFixture.GetServiceCollection(), FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint, 300);
 		}
 	}
 }

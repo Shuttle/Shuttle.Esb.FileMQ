@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Threading.Tasks;
+using NUnit.Framework;
 using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.FileMQ.Tests
@@ -8,9 +9,9 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[Test]
 		[TestCase(false)]
 		[TestCase(true)]
-		public void Should_be_able_to_perform_full_processing(bool isTransactionalEndpoint)
+		public async Task Should_be_able_to_perform_full_processing(bool isTransactionalEndpoint)
 		{
-			TestDeferredProcessing(FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint);
+			await TestDeferredProcessing(FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint);
 		}
 	}
 }
