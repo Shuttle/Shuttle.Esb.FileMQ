@@ -12,7 +12,7 @@ namespace Shuttle.Esb.FileMQ
     {
         private const string Extension = ".file";
         private const string ExtensionMask = "*.file";
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly string _journalFolder;
         private readonly string _queueFolder;
         private bool _journalInitialized;
@@ -32,7 +32,7 @@ namespace Shuttle.Esb.FileMQ
 
         public async Task Create()
         {
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -41,7 +41,7 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
 
             await Task.CompletedTask;
@@ -49,7 +49,7 @@ namespace Shuttle.Esb.FileMQ
 
         public async Task Drop()
         {
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -65,7 +65,7 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
 
             await Task.CompletedTask;
@@ -89,7 +89,7 @@ namespace Shuttle.Esb.FileMQ
         {
             await Create();
 
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -118,7 +118,7 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
         }
 
@@ -129,7 +129,7 @@ namespace Shuttle.Esb.FileMQ
                 await ReturnJournalMessages().ConfigureAwait(false);
             }
 
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -163,13 +163,13 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
         }
 
         public async Task Acknowledge(object acknowledgementToken)
         {
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -177,7 +177,7 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
         }
 
@@ -187,7 +187,7 @@ namespace Shuttle.Esb.FileMQ
             var queueMessage = Path.Combine(_queueFolder, fileName);
             var journalMessage = Path.Combine(_journalFolder, fileName);
 
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -207,14 +207,14 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release(); 
+                _lock.Release(); 
             }
 
         }
 
         private async Task ReturnJournalMessages()
         {
-            await Lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -246,7 +246,7 @@ namespace Shuttle.Esb.FileMQ
             }
             finally
             {
-                Lock.Release();
+                _lock.Release();
             }
         }
     }
