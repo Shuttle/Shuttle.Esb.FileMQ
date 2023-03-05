@@ -32,7 +32,7 @@ namespace Shuttle.Esb.FileMQ
 
         public async Task Create()
         {
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -49,7 +49,7 @@ namespace Shuttle.Esb.FileMQ
 
         public async Task Drop()
         {
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -89,7 +89,7 @@ namespace Shuttle.Esb.FileMQ
         {
             await Create();
 
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -129,7 +129,7 @@ namespace Shuttle.Esb.FileMQ
                 await ReturnJournalMessages().ConfigureAwait(false);
             }
 
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -169,7 +169,7 @@ namespace Shuttle.Esb.FileMQ
 
         public async Task Acknowledge(object acknowledgementToken)
         {
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -187,7 +187,7 @@ namespace Shuttle.Esb.FileMQ
             var queueMessage = Path.Combine(_queueFolder, fileName);
             var journalMessage = Path.Combine(_journalFolder, fileName);
 
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -209,12 +209,11 @@ namespace Shuttle.Esb.FileMQ
             {
                 _lock.Release(); 
             }
-
         }
 
         private async Task ReturnJournalMessages()
         {
-            await _lock.WaitAsync().ConfigureAwait(false);
+            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
