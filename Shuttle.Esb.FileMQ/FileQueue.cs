@@ -12,10 +12,30 @@ namespace Shuttle.Esb.FileMQ
     {
         private const string Extension = ".file";
         private const string ExtensionMask = "*.file";
-        private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly string _journalFolder;
         private readonly string _queueFolder;
         private bool _journalInitialized;
+
+        public event EventHandler<MessageEnqueuedEventArgs> MessageEnqueued = delegate
+        {
+        };
+
+        public event EventHandler<MessageAcknowledgedEventArgs> MessageAcknowledged = delegate
+        {
+        };
+
+        public event EventHandler<MessageReleasedEventArgs> MessageReleased = delegate
+        {
+        };
+
+        public event EventHandler<MessageReceivedEventArgs> MessageReceived = delegate
+        {
+        };
+
+        public event EventHandler<OperationCompletedEventArgs> OperationCompleted = delegate
+        {
+        };
 
         public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions)
         {
