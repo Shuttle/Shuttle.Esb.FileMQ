@@ -13,7 +13,7 @@
 		<repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.FileMQ.git" />
 		<projectUrl>https://github.com/Shuttle/Shuttle.Esb.FileMQ</projectUrl>
 		<description>File-based queue implementation for use with Shuttle.Esb.</description>
-		<copyright>Copyright (c) 2023, Eben Roux</copyright>
+		<copyright>Copyright (c) 2024, Eben Roux</copyright>
 		<tags>filemq</tags>
 		<dependencies>
       <dependency id="Shuttle.Esb" version="14.0.0" />
