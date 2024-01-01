@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Shuttle.Esb.FileMQ.Tests
 {
-    public static class FileQueueFixture
+    public static class FileQueueConfiguration
     {
         public static IServiceCollection GetServiceCollection()
         {

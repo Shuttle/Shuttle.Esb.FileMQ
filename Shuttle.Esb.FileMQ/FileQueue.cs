@@ -10,6 +10,7 @@ namespace Shuttle.Esb.FileMQ
 {
     public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
     {
+        private readonly CancellationToken _cancellationToken;
         private const string Extension = ".file";
         private const string ExtensionMask = "*.file";
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
@@ -17,41 +18,42 @@ namespace Shuttle.Esb.FileMQ
         private readonly string _queueFolder;
         private bool _journalInitialized;
 
-        public event EventHandler<MessageEnqueuedEventArgs> MessageEnqueued = delegate
-        {
-        };
+        public event EventHandler<MessageEnqueuedEventArgs> MessageEnqueued;
+        public event EventHandler<MessageAcknowledgedEventArgs> MessageAcknowledged;
+        public event EventHandler<MessageReleasedEventArgs> MessageReleased;
+        public event EventHandler<MessageReceivedEventArgs> MessageReceived;
+        public event EventHandler<OperationEventArgs> Operation;
 
-        public event EventHandler<MessageAcknowledgedEventArgs> MessageAcknowledged = delegate
+        public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions, CancellationToken cancellationToken)
         {
-        };
-
-        public event EventHandler<MessageReleasedEventArgs> MessageReleased = delegate
-        {
-        };
-
-        public event EventHandler<MessageReceivedEventArgs> MessageReceived = delegate
-        {
-        };
-
-        public event EventHandler<OperationCompletedEventArgs> OperationCompleted = delegate
-        {
-        };
-
-        public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions)
-        {
-            Guard.AgainstNull(uri, nameof(uri));
             Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
 
-            Uri = uri;
+            _cancellationToken = cancellationToken;
+
+            Uri = Guard.AgainstNull(uri, nameof(uri));
 
             _queueFolder = Path.Combine(fileQueueOptions.Path, uri.QueueName);
             _journalFolder = Path.Combine(_queueFolder, "journal");
 
-            Create().GetAwaiter().GetResult();
+            Create();
         }
 
-        public async Task Create()
+        public async Task CreateAsync()
         {
+            if (Directory.Exists(_queueFolder) ||
+                Directory.Exists(_journalFolder))
+            {
+                return;
+            }
+
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[create/cancelled]"));
+                return;
+            }
+
+            Operation?.Invoke(this, new OperationEventArgs("[create/starting]"));
+
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
@@ -64,11 +66,21 @@ namespace Shuttle.Esb.FileMQ
                 _lock.Release();
             }
 
+            Operation?.Invoke(this, new OperationEventArgs("[create/completed]"));
+
             await Task.CompletedTask;
         }
 
-        public async Task Drop()
+        public async Task DropAsync()
         {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[drop/cancelled]"));
+                return;
+            }
+
+            Operation?.Invoke(this, new OperationEventArgs("[drop/starting]"));
+
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
@@ -88,26 +100,95 @@ namespace Shuttle.Esb.FileMQ
                 _lock.Release();
             }
 
+            Operation?.Invoke(this, new OperationEventArgs("[drop/starting]"));
+
             await Task.CompletedTask;
         }
 
-        public async Task Purge()
+        private async Task PurgeAsync(bool sync)
         {
-            await Drop();
-            await Create();
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[purge/cancelled]"));
+                return;
+            }
+
+            Operation?.Invoke(this, new OperationEventArgs("[purge/starting] - drop/create"));
+
+            if (sync)
+            {
+                Drop();
+                Create();
+            }
+            else
+            {
+                await DropAsync().ConfigureAwait(false);
+                await CreateAsync().ConfigureAwait(false);
+            }
+
+            Operation?.Invoke(this, new OperationEventArgs("[purge/completed]"));
         }
 
         public QueueUri Uri { get; }
         public bool IsStream => false;
 
-        public ValueTask<bool> IsEmpty()
+        public bool IsEmpty()
         {
-            return new ValueTask<bool>(!Directory.GetFiles(_queueFolder, ExtensionMask).Any());
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]"));
+                return true;
+            }
+
+            return !Directory.GetFiles(_queueFolder, ExtensionMask).Any();
         }
 
-        public async Task Enqueue(TransportMessage transportMessage, Stream stream)
+        public ValueTask<bool> IsEmptyAsync()
         {
-            await Create();
+            return new ValueTask<bool>(IsEmpty());
+        }
+
+        public void Enqueue(TransportMessage transportMessage, Stream stream)
+        {
+            EnqueueAsync(transportMessage, stream, true).GetAwaiter().GetResult();
+        }
+
+        public async Task EnqueueAsync(TransportMessage transportMessage, Stream stream)
+        {
+            await EnqueueAsync(transportMessage, stream, false).ConfigureAwait(false);
+        }
+
+        public ReceivedMessage GetMessage()
+        {
+            return GetMessageAsync(true).GetAwaiter().GetResult();
+        }
+
+        public async Task<ReceivedMessage> GetMessageAsync()
+        {
+            return await GetMessageAsync(true).ConfigureAwait(false);
+        }
+
+        public void Acknowledge(object acknowledgementToken)
+        {
+            AcknowledgeAsync(acknowledgementToken).GetAwaiter().GetResult();
+        }
+
+        private async Task EnqueueAsync(TransportMessage transportMessage, Stream stream, bool sync)
+        {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[enqueue/cancelled]"));
+                return;
+            }
+
+            if (sync)
+            {
+                Create();
+            }
+            else
+            {
+                await CreateAsync().ConfigureAwait(false);
+            }
 
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
@@ -122,16 +203,35 @@ namespace Shuttle.Esb.FileMQ
                     File.Delete(message);
                 }
 
-                await using (var source = await stream.CopyAsync())
-                await using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
+                if (sync)
                 {
-                    int length;
-                    while ((length = await source.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    using (var source = stream.Copy())
+                    using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
                     {
-                        fs.Write(buffer, 0, length);
-                    }
+                        int length;
+                        
+                        while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            fs.Write(buffer, 0, length);
+                        }
 
-                    fs.Flush();
+                        fs.Flush();
+                    }
+                }
+                else
+                {
+                    await using (var source = await stream.CopyAsync().ConfigureAwait(false))
+                    await using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
+                    {
+                        int length;
+
+                        while ((length = await source.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+                        {
+                            fs.Write(buffer, 0, length);
+                        }
+
+                        fs.Flush();
+                    }
                 }
 
                 File.Move(streaming, message);
@@ -140,55 +240,72 @@ namespace Shuttle.Esb.FileMQ
             {
                 _lock.Release();
             }
+
+            MessageEnqueued?.Invoke(this, new MessageEnqueuedEventArgs(transportMessage, stream));
         }
 
-        public async Task<ReceivedMessage> GetMessage()
+        private async Task<ReceivedMessage> GetMessageAsync(bool sync)
         {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[get-message/cancelled]"));
+                return null;
+            }
+
+            ReceivedMessage result = null;
+
             if (!_journalInitialized)
             {
-                await ReturnJournalMessages().ConfigureAwait(false);
+                await ReturnJournalMessagesAsync().ConfigureAwait(false);
             }
 
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
             {
-                try
-                {
-                    var message =
-                        Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
-                            .FirstOrDefault();
+                var message =
+                    Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
+                        .FirstOrDefault();
 
-                    if (string.IsNullOrEmpty(message))
-                    {
-                        return null;
-                    }
-
-                    ReceivedMessage result;
-                    var acknowledgementToken = Path.GetFileName(message);
-
-                    await using (var stream = File.OpenRead(message))
-                    {
-                        result = new ReceivedMessage(await stream.CopyAsync(), acknowledgementToken);
-                    }
-
-                    File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
-
-                    return result;
-                }
-                catch
+                if (string.IsNullOrEmpty(message))
                 {
                     return null;
                 }
+
+                var acknowledgementToken = Path.GetFileName(message);
+
+                await using (var stream = File.OpenRead(message))
+                {
+                    result = new ReceivedMessage(sync ? stream.Copy() : await stream.CopyAsync().ConfigureAwait(false), acknowledgementToken);
+                }
+
+                File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
+            }
+            catch
+            {
+                result = null;
             }
             finally
             {
                 _lock.Release();
             }
+
+            if (result != null)
+            {
+                MessageReceived?.Invoke(this, new MessageReceivedEventArgs(result));
+            }
+
+            return result;
         }
 
-        public async Task Acknowledge(object acknowledgementToken)
+        public async Task AcknowledgeAsync(object acknowledgementToken)
         {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[acknowledge/cancelled]"));
+                return;
+            }
+
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
             try
@@ -199,10 +316,23 @@ namespace Shuttle.Esb.FileMQ
             {
                 _lock.Release();
             }
+
+            MessageAcknowledged?.Invoke(this, new MessageAcknowledgedEventArgs(acknowledgementToken));
         }
 
-        public async Task Release(object acknowledgementToken)
+        public void Release(object acknowledgementToken)
         {
+            ReleaseAsync(acknowledgementToken).GetAwaiter().GetResult();
+        }
+
+        public async Task ReleaseAsync(object acknowledgementToken)
+        {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                Operation?.Invoke(this, new OperationEventArgs("[release/cancelled]"));
+                return;
+            }
+
             var fileName = (string) acknowledgementToken;
             var queueMessage = Path.Combine(_queueFolder, fileName);
             var journalMessage = Path.Combine(_journalFolder, fileName);
@@ -211,12 +341,7 @@ namespace Shuttle.Esb.FileMQ
 
             try
             {
-                if (!File.Exists(journalMessage))
-                {
-                    return;
-                }
-
-                if (!Directory.Exists(_queueFolder))
+                if (!File.Exists(journalMessage) || !Directory.Exists(_queueFolder))
                 {
                     return;
                 }
@@ -229,9 +354,11 @@ namespace Shuttle.Esb.FileMQ
             {
                 _lock.Release(); 
             }
+
+            MessageReleased?.Invoke(this, new MessageReleasedEventArgs(acknowledgementToken));
         }
 
-        private async Task ReturnJournalMessages()
+        private async Task ReturnJournalMessagesAsync()
         {
             await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
@@ -267,6 +394,27 @@ namespace Shuttle.Esb.FileMQ
             {
                 _lock.Release();
             }
+        }
+
+        public void Create()
+        {
+            CreateAsync().GetAwaiter().GetResult();
+        }
+
+        public void Drop()
+        {
+            DropAsync().GetAwaiter().GetResult();
+        }
+
+ 
+        public void Purge()
+        {
+            PurgeAsync(true).GetAwaiter().GetResult();
+        }
+
+        public async Task PurgeAsync()
+        {
+            await PurgeAsync(false).ConfigureAwait(false);
         }
     }
 }

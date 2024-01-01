@@ -9,9 +9,17 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[Test]
 		[TestCase(false)]
 		[TestCase(true)]
-		public async Task Should_be_able_handle_errors(bool isTransactionalEndpoint)
+		public void Should_be_able_handle_errors(bool isTransactionalEndpoint)
 		{
-			await TestOutboxSending(FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", 1, isTransactionalEndpoint);
+			TestOutboxSending(FileQueueConfiguration.GetServiceCollection(), "filemq://local/{0}", 1, isTransactionalEndpoint);
+		}
+
+		[Test]
+		[TestCase(false)]
+		[TestCase(true)]
+		public async Task Should_be_able_handle_errors_async(bool isTransactionalEndpoint)
+		{
+			await TestOutboxSendingAsync(FileQueueConfiguration.GetServiceCollection(), "filemq://local/{0}", 1, isTransactionalEndpoint);
 		}
 	}
 }

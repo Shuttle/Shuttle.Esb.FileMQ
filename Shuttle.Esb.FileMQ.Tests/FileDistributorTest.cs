@@ -9,9 +9,17 @@ namespace Shuttle.Esb.FileMQ.Tests
 		[Test]
 		[TestCase(false)]
 		[TestCase(true)]
-		public async Task Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
+		public void Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
 		{
-			await TestDistributor(FileQueueFixture.GetServiceCollection(), FileQueueFixture.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint, 300);
+			TestDistributor(FileQueueConfiguration.GetServiceCollection(), FileQueueConfiguration.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint, 300);
+		}
+
+		[Test]
+		[TestCase(false)]
+		[TestCase(true)]
+		public async Task Should_be_able_to_distribute_messages_async(bool isTransactionalEndpoint)
+		{
+			await TestDistributorAsync(FileQueueConfiguration.GetServiceCollection(), FileQueueConfiguration.GetServiceCollection(), "filemq://local/{0}", isTransactionalEndpoint, 300);
 		}
 	}
 }
