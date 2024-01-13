@@ -136,7 +136,7 @@ namespace Shuttle.Esb.FileMQ
         {
             if (_cancellationToken.IsCancellationRequested)
             {
-                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]"));
+                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]", true));
                 return true;
             }
 
