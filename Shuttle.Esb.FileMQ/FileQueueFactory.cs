@@ -1,18 +1,19 @@
 ﻿using System;
 using Microsoft.Extensions.Options;
 using Shuttle.Core.Contract;
+using Shuttle.Core.Threading;
 
 namespace Shuttle.Esb.FileMQ
 {
     public class FileQueueFactory : IQueueFactory
     {
         private readonly IOptionsMonitor<FileQueueOptions> _fileQueueOptions;
+        private readonly ICancellationTokenSource _cancellationTokenSource;
 
-        public FileQueueFactory(IOptionsMonitor<FileQueueOptions> fileQueueOptions)
+        public FileQueueFactory(IOptionsMonitor<FileQueueOptions> fileQueueOptions, ICancellationTokenSource cancellationTokenSource)
         {
-            Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
-
-            _fileQueueOptions = fileQueueOptions;
+            _fileQueueOptions = Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
+            _cancellationTokenSource = Guard.AgainstNull(cancellationTokenSource, nameof(cancellationTokenSource));
         }
 
         public string Scheme => "filemq";
@@ -29,7 +30,7 @@ namespace Shuttle.Esb.FileMQ
                 throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
             }
 
-            return new FileQueue(queueUri, fileQueueOptions);
+            return new FileQueue(queueUri, fileQueueOptions, _cancellationTokenSource.Get().Token);
         }
     }
 }
