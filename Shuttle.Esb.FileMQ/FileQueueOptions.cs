@@ -1,9 +1,8 @@
-﻿namespace Shuttle.Esb.FileMQ
-{
-    public class FileQueueOptions
-    {
-        public const string SectionName = "Shuttle:FileMQ";
+﻿namespace Shuttle.Esb.FileMQ;
 
-        public string Path { get; set; }
-    }
+public class FileQueueOptions
+{
+    public const string SectionName = "Shuttle:FileMQ";
+
+    public string Path { get; set; } = string.Empty;
 }

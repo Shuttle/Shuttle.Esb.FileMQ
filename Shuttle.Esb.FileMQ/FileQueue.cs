@@ -6,415 +6,336 @@ using System.Threading.Tasks;
 using Shuttle.Core.Contract;
 using Shuttle.Core.Streams;
 
-namespace Shuttle.Esb.FileMQ
+namespace Shuttle.Esb.FileMQ;
+
+public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 {
-    public class FileQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
+    private const string Extension = ".file";
+    private const string ExtensionMask = "*.file";
+    private readonly CancellationToken _cancellationToken;
+    private readonly string _journalFolder;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly string _queueFolder;
+    private bool _journalInitialized;
+
+    public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions, CancellationToken cancellationToken)
     {
-        private readonly CancellationToken _cancellationToken;
-        private const string Extension = ".file";
-        private const string ExtensionMask = "*.file";
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
-        private readonly string _journalFolder;
-        private readonly string _queueFolder;
-        private bool _journalInitialized;
+        Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
 
-        public event EventHandler<MessageEnqueuedEventArgs> MessageEnqueued;
-        public event EventHandler<MessageAcknowledgedEventArgs> MessageAcknowledged;
-        public event EventHandler<MessageReleasedEventArgs> MessageReleased;
-        public event EventHandler<MessageReceivedEventArgs> MessageReceived;
-        public event EventHandler<OperationEventArgs> Operation;
+        _cancellationToken = cancellationToken;
 
-        public FileQueue(QueueUri uri, FileQueueOptions fileQueueOptions, CancellationToken cancellationToken)
+        Uri = Guard.AgainstNull(uri, nameof(uri));
+
+        _queueFolder = Path.Combine(fileQueueOptions.Path, uri.QueueName);
+        _journalFolder = Path.Combine(_queueFolder, "journal");
+
+        CreateAsync().GetAwaiter().GetResult();
+    }
+
+    public async Task CreateAsync()
+    {
+        if (Directory.Exists(_queueFolder) ||
+            Directory.Exists(_journalFolder))
         {
-            Guard.AgainstNull(fileQueueOptions, nameof(fileQueueOptions));
-
-            _cancellationToken = cancellationToken;
-
-            Uri = Guard.AgainstNull(uri, nameof(uri));
-
-            _queueFolder = Path.Combine(fileQueueOptions.Path, uri.QueueName);
-            _journalFolder = Path.Combine(_queueFolder, "journal");
-
-            Create();
+            return;
         }
 
-        public async Task CreateAsync()
+        if (_cancellationToken.IsCancellationRequested)
         {
-            if (Directory.Exists(_queueFolder) ||
-                Directory.Exists(_journalFolder))
+            Operation?.Invoke(this, new("[create/cancelled]"));
+            return;
+        }
+
+        Operation?.Invoke(this, new("[create/starting]"));
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            Directory.CreateDirectory(_queueFolder);
+            Directory.CreateDirectory(_journalFolder);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        Operation?.Invoke(this, new("[create/completed]"));
+
+        await Task.CompletedTask;
+    }
+
+    public async Task DropAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[drop/cancelled]"));
+            return;
+        }
+
+        Operation?.Invoke(this, new("[drop/starting]"));
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            if (Directory.Exists(_journalFolder))
+            {
+                Directory.Delete(_journalFolder, true);
+            }
+
+            if (Directory.Exists(_queueFolder))
+            {
+                Directory.Delete(_queueFolder, true);
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        Operation?.Invoke(this, new("[drop/starting]"));
+
+        await Task.CompletedTask;
+    }
+
+    public event EventHandler<MessageEnqueuedEventArgs>? MessageEnqueued;
+    public event EventHandler<MessageAcknowledgedEventArgs>? MessageAcknowledged;
+    public event EventHandler<MessageReleasedEventArgs>? MessageReleased;
+    public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+    public event EventHandler<OperationEventArgs>? Operation;
+
+    public QueueUri Uri { get; }
+    public bool IsStream => false;
+
+    public async ValueTask<bool> IsEmptyAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[is-empty/cancelled]", true));
+            return true;
+        }
+
+        return await ValueTask.FromResult(!Directory.GetFiles(_queueFolder, ExtensionMask).Any());
+    }
+
+    public async Task AcknowledgeAsync(object acknowledgementToken)
+    {
+        if (Guard.AgainstNull(acknowledgementToken) is not string fileName)
+        {
+            return;
+        }
+
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[acknowledge/cancelled]"));
+            return;
+        }
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            File.Delete(Path.Combine(_journalFolder, fileName));
+        }
+        finally
+        {
+            _lock.Release();
+        }
+
+        MessageAcknowledged?.Invoke(this, new(acknowledgementToken));
+    }
+
+    public async Task ReleaseAsync(object acknowledgementToken)
+    {
+        if (Guard.AgainstNull(acknowledgementToken) is not string fileName)
+        {
+            return;
+        }
+
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[release/cancelled]"));
+            return;
+        }
+
+        var queueMessage = Path.Combine(_queueFolder, fileName);
+        var journalMessage = Path.Combine(_journalFolder, fileName);
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            if (!File.Exists(journalMessage) || !Directory.Exists(_queueFolder))
             {
                 return;
             }
 
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[create/cancelled]"));
-                return;
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[create/starting]"));
-
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                Directory.CreateDirectory(_queueFolder);
-                Directory.CreateDirectory(_journalFolder);
-            }
-            finally
-            {
-                _lock.Release();
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[create/completed]"));
-
-            await Task.CompletedTask;
+            File.Delete(queueMessage);
+            File.Move(journalMessage, queueMessage);
+            File.SetCreationTime(queueMessage, DateTime.Now);
+        }
+        finally
+        {
+            _lock.Release();
         }
 
-        public async Task DropAsync()
+        MessageReleased?.Invoke(this, new(acknowledgementToken));
+    }
+
+    public async Task EnqueueAsync(TransportMessage transportMessage, Stream stream)
+    {
+        if (_cancellationToken.IsCancellationRequested)
         {
-            if (_cancellationToken.IsCancellationRequested)
+            Operation?.Invoke(this, new("[enqueue/cancelled]"));
+            return;
+        }
+
+        await CreateAsync().ConfigureAwait(false);
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            var buffer = new byte[8 * 1024];
+            var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
+            var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
+
+            if (File.Exists(message))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[drop/cancelled]"));
-                return;
+                File.Delete(message);
             }
 
-            Operation?.Invoke(this, new OperationEventArgs("[drop/starting]"));
-
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
+            await using (var source = await stream.CopyAsync().ConfigureAwait(false))
+            await using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
             {
-                if (Directory.Exists(_journalFolder))
+                int length;
+
+                while ((length = await source.ReadAsync(buffer, 0, buffer.Length, _cancellationToken).ConfigureAwait(false)) > 0)
                 {
-                    Directory.Delete(_journalFolder, true);
+                    await fs.WriteAsync(buffer, 0, length, _cancellationToken);
                 }
 
-                if (Directory.Exists(_queueFolder))
-                {
-                    Directory.Delete(_queueFolder, true);
-                }
-            }
-            finally
-            {
-                _lock.Release();
+                await fs.FlushAsync(_cancellationToken);
             }
 
-            Operation?.Invoke(this, new OperationEventArgs("[drop/starting]"));
-
-            await Task.CompletedTask;
+            File.Move(streaming, message);
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[enqueue/cancelled]"));
+        }
+        finally
+        {
+            _lock.Release();
         }
 
-        private async Task PurgeAsync(bool sync)
+        MessageEnqueued?.Invoke(this, new(transportMessage, stream));
+    }
+
+    public async Task<ReceivedMessage?> GetMessageAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
         {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[purge/cancelled]"));
-                return;
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[purge/starting] - drop/create"));
-
-            if (sync)
-            {
-                Drop();
-                Create();
-            }
-            else
-            {
-                await DropAsync().ConfigureAwait(false);
-                await CreateAsync().ConfigureAwait(false);
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[purge/completed]"));
+            Operation?.Invoke(this, new("[get-message/cancelled]"));
+            return null;
         }
 
-        public QueueUri Uri { get; }
-        public bool IsStream => false;
+        ReceivedMessage? result;
 
-        public bool IsEmpty()
+        if (!_journalInitialized)
         {
-            if (_cancellationToken.IsCancellationRequested)
+            await ReturnJournalMessagesAsync().ConfigureAwait(false);
+        }
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            var message = Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime).FirstOrDefault();
+
+            if (string.IsNullOrEmpty(message))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]", true));
-                return true;
-            }
-
-            return !Directory.GetFiles(_queueFolder, ExtensionMask).Any();
-        }
-
-        public ValueTask<bool> IsEmptyAsync()
-        {
-            return new ValueTask<bool>(IsEmpty());
-        }
-
-        public void Enqueue(TransportMessage transportMessage, Stream stream)
-        {
-            EnqueueAsync(transportMessage, stream, true).GetAwaiter().GetResult();
-        }
-
-        public async Task EnqueueAsync(TransportMessage transportMessage, Stream stream)
-        {
-            await EnqueueAsync(transportMessage, stream, false).ConfigureAwait(false);
-        }
-
-        public ReceivedMessage GetMessage()
-        {
-            return GetMessageAsync(true).GetAwaiter().GetResult();
-        }
-
-        public async Task<ReceivedMessage> GetMessageAsync()
-        {
-            return await GetMessageAsync(true).ConfigureAwait(false);
-        }
-
-        public void Acknowledge(object acknowledgementToken)
-        {
-            AcknowledgeAsync(acknowledgementToken).GetAwaiter().GetResult();
-        }
-
-        private async Task EnqueueAsync(TransportMessage transportMessage, Stream stream, bool sync)
-        {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[enqueue/cancelled]"));
-                return;
-            }
-
-            if (sync)
-            {
-                Create();
-            }
-            else
-            {
-                await CreateAsync().ConfigureAwait(false);
-            }
-
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                var buffer = new byte[8 * 1024];
-                var streaming = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, ".stream"));
-                var message = Path.Combine(_queueFolder, string.Concat(transportMessage.MessageId, Extension));
-
-                if (File.Exists(message))
-                {
-                    File.Delete(message);
-                }
-
-                if (sync)
-                {
-                    using (var source = stream.Copy())
-                    using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
-                    {
-                        int length;
-                        
-                        while ((length = source.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            fs.Write(buffer, 0, length);
-                        }
-
-                        fs.Flush();
-                    }
-                }
-                else
-                {
-                    await using (var source = await stream.CopyAsync().ConfigureAwait(false))
-                    await using (var fs = new FileStream(streaming, FileMode.Create, FileAccess.Write))
-                    {
-                        int length;
-
-                        while ((length = await source.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
-                        {
-                            fs.Write(buffer, 0, length);
-                        }
-
-                        fs.Flush();
-                    }
-                }
-
-                File.Move(streaming, message);
-            }
-            finally
-            {
-                _lock.Release();
-            }
-
-            MessageEnqueued?.Invoke(this, new MessageEnqueuedEventArgs(transportMessage, stream));
-        }
-
-        private async Task<ReceivedMessage> GetMessageAsync(bool sync)
-        {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[get-message/cancelled]"));
                 return null;
             }
 
-            ReceivedMessage result = null;
+            var acknowledgementToken = Path.GetFileName(message);
 
-            if (!_journalInitialized)
+            await using (var stream = File.OpenRead(message))
             {
-                await ReturnJournalMessagesAsync().ConfigureAwait(false);
+                result = new(await stream.CopyAsync().ConfigureAwait(false), acknowledgementToken);
             }
 
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                var message =
-                    Directory.GetFiles(_queueFolder, ExtensionMask).OrderBy(file => new FileInfo(file).CreationTime)
-                        .FirstOrDefault();
-
-                if (string.IsNullOrEmpty(message))
-                {
-                    return null;
-                }
-
-                var acknowledgementToken = Path.GetFileName(message);
-
-                await using (var stream = File.OpenRead(message))
-                {
-                    result = new ReceivedMessage(sync ? stream.Copy() : await stream.CopyAsync().ConfigureAwait(false), acknowledgementToken);
-                }
-
-                File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
-            }
-            catch
-            {
-                result = null;
-            }
-            finally
-            {
-                _lock.Release();
-            }
-
-            if (result != null)
-            {
-                MessageReceived?.Invoke(this, new MessageReceivedEventArgs(result));
-            }
-
-            return result;
+            File.Move(message, Path.Combine(_journalFolder, acknowledgementToken));
+        }
+        catch
+        {
+            result = null;
+        }
+        finally
+        {
+            _lock.Release();
         }
 
-        public async Task AcknowledgeAsync(object acknowledgementToken)
+        if (result != null)
         {
-            if (_cancellationToken.IsCancellationRequested)
+            MessageReceived?.Invoke(this, new(result));
+        }
+
+        return result;
+    }
+
+    public async Task PurgeAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[purge/cancelled]"));
+            return;
+        }
+
+        Operation?.Invoke(this, new("[purge/starting] - drop/create"));
+
+        await DropAsync().ConfigureAwait(false);
+        await CreateAsync().ConfigureAwait(false);
+
+        Operation?.Invoke(this, new("[purge/completed]"));
+    }
+
+    private async Task ReturnJournalMessagesAsync()
+    {
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        try
+        {
+            if (_journalInitialized
+                ||
+                !Directory.Exists(_queueFolder)
+                ||
+                !Directory.Exists(_journalFolder))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[acknowledge/cancelled]"));
                 return;
             }
 
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
+            foreach (var journalFile in Directory.GetFiles(_journalFolder, ExtensionMask))
             {
-                File.Delete(Path.Combine(_journalFolder, (string)acknowledgementToken));
-            }
-            finally
-            {
-                _lock.Release();
-            }
+                var queueFile = Path.Combine(_queueFolder, Path.GetFileName(journalFile));
 
-            MessageAcknowledged?.Invoke(this, new MessageAcknowledgedEventArgs(acknowledgementToken));
-        }
-
-        public void Release(object acknowledgementToken)
-        {
-            ReleaseAsync(acknowledgementToken).GetAwaiter().GetResult();
-        }
-
-        public async Task ReleaseAsync(object acknowledgementToken)
-        {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[release/cancelled]"));
-                return;
-            }
-
-            var fileName = (string) acknowledgementToken;
-            var queueMessage = Path.Combine(_queueFolder, fileName);
-            var journalMessage = Path.Combine(_journalFolder, fileName);
-
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                if (!File.Exists(journalMessage) || !Directory.Exists(_queueFolder))
+                if (File.Exists(queueFile))
                 {
-                    return;
+                    File.Delete(queueFile);
                 }
 
-                File.Delete(queueMessage);
-                File.Move(journalMessage, queueMessage);
-                File.SetCreationTime(queueMessage, DateTime.Now);
-            }
-            finally
-            {
-                _lock.Release(); 
-            }
-
-            MessageReleased?.Invoke(this, new MessageReleasedEventArgs(acknowledgementToken));
-        }
-
-        private async Task ReturnJournalMessagesAsync()
-        {
-            await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                if (_journalInitialized
-                    ||
-                    !Directory.Exists(_queueFolder)
-                    ||
-                    !Directory.Exists(_journalFolder))
+                if (File.Exists(journalFile))
                 {
-                    return;
+                    File.Move(journalFile, queueFile);
                 }
-
-                foreach (var journalFile in Directory.GetFiles(_journalFolder, ExtensionMask))
-                {
-                    var queueFile = Path.Combine(_queueFolder, Path.GetFileName(journalFile));
-
-                    if (File.Exists(queueFile))
-                    {
-                        File.Delete(queueFile);
-                    }
-
-                    if (File.Exists(journalFile))
-                    {
-                        File.Move(journalFile, queueFile);
-                    }
-                }
-
-                _journalInitialized = true;
             }
-            finally
-            {
-                _lock.Release();
-            }
-        }
 
-        public void Create()
-        {
-            CreateAsync().GetAwaiter().GetResult();
+            _journalInitialized = true;
         }
-
-        public void Drop()
+        finally
         {
-            DropAsync().GetAwaiter().GetResult();
-        }
-
- 
-        public void Purge()
-        {
-            PurgeAsync(true).GetAwaiter().GetResult();
-        }
-
-        public async Task PurgeAsync()
-        {
-            await PurgeAsync(false).ConfigureAwait(false);
+            _lock.Release();
         }
     }
 }
